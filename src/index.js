@@ -1,3 +1,8 @@
 import '../vendor/bootstrap/bootstrap.min.css';
+import app from './app.js';
 
-console.log('Hello!');
+app();
+
+// const xxx = 'https://ru.hexlet.io/lessons.rss';
+// const xxx = 'https://news.mail.ru/rss';
+// const xxx = 'https://lorem-rss.hexlet.app/feed';
