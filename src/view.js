@@ -39,10 +39,10 @@ const renderFeeds = (elements, value, listId) => {
       headingEl.classList.add('h6', 'm-0');
       liEl.append(headingEl);
       headingEl.textContent = feed.title;
-      const p = document.createElement('p');
-      p.classList.add('m-0', 'small', 'text-black-50');
-      p.textContent = feed.description;
-      liEl.append(p);
+      const pEl = document.createElement('p');
+      pEl.classList.add('m-0', 'small', 'text-black-50');
+      pEl.textContent = feed.description;
+      liEl.append(pEl);
     }
   });
 };
@@ -50,27 +50,37 @@ const renderFeeds = (elements, value, listId) => {
 const renderPosts = (elements, value, listId, i18n) => {
   value.forEach((post) => {
     if (!listId.includes(post.id)) {
-      const ul = elements.ulPosts;
-      const li = document.createElement('li');
-      ul.prepend(li);
-      li.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-start', 'border-0', 'border-end-0');
-      const a = document.createElement('a');
-      li.append(a);
-      a.href = post.link;
-      a.classList.add('fw-bold');
-      a.dataset.id = post.id;
-      a.textContent = post.title;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
+      const ulEl = elements.ulPosts;
+      const liEl = document.createElement('li');
+      ulEl.prepend(liEl);
+      liEl.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-start', 'border-0', 'border-end-0');
+      const aEl = document.createElement('a');
+      liEl.append(aEl);
+      aEl.href = post.link;
+      aEl.classList.add('fw-bold');
+      aEl.dataset.id = post.id;
+      aEl.textContent = post.title;
+      aEl.target = '_blank';
+      aEl.rel = 'noopener noreferrer';
 
       const button = document.createElement('button');
-      li.append(button);
+      liEl.append(button);
       button.type = 'button';
       button.classList.add('btn', 'btn-outline-primary', 'btn-sm');
       button.textContent = i18n.t('elements_names.view');
       button.dataset.id = post.id;
       button.dataset.bsToggle = 'modal';
       button.dataset.bsTarget = '#modal';
+
+      aEl.addEventListener('click', () => {
+        aEl.classList.remove('fw-bold');
+        aEl.classList.add('fw-normal', 'link-secondary');
+      });
+
+      button.addEventListener('click', () => {
+        aEl.classList.remove('fw-bold');
+        aEl.classList.add('fw-normal', 'link-secondary');
+      });
     }
   });
 };

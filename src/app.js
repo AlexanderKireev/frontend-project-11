@@ -90,8 +90,13 @@ export default () => {
   const parsingUrl = (xmlString, feedUrl) => {
     const parser = new DOMParser();
     const parsedDOM = parser.parseFromString(xmlString, 'application/xml');
-    const res = convertDOMtoContetntData(parsedDOM, feedUrl);
-    return res;
+    const errorNode = parsedDOM.querySelector('parsererror');
+    if (errorNode) {
+      const error = new Error(errorNode);
+      error.parsingError = true;
+      throw error;
+    }
+    return convertDOMtoContetntData(parsedDOM, feedUrl);
   };
 
   const getResponse = (url) => {
@@ -115,8 +120,18 @@ export default () => {
       watchedState.contentData.posts = [...state.contentData.posts, ...newFeed.posts];
       // console.log(elements);
       // console.log(state);
-    }).catch((err) => {
-      console.log(err);
+    }).catch((error) => {
+      if (axios.isAxiosError(error)) {
+        watchedState.form.errors = [{ key: 'feedback.errors.noConnection' }];
+      } else if (error.parsingError) {
+        // console.log('fff');
+        watchedState.form.errors = [{ key: 'feedback.errors.parsingError' }];
+      } else {
+        watchedState.form.errors = [{ key: 'feedback.errors.unknownError' }];
+      }
+      // watchedState.form.errors = ;
+      // console.log(err);
+      // console.log(axios.isAxiosError(err));
     });
   };
 
@@ -148,7 +163,7 @@ export default () => {
     }).catch((error) => {
     // console.log(error.inner);
     // console.log(error.errors);
-      watchedState.form.errors = error.errors || [{ key: 'feedback.errors.unknown' }];
+      watchedState.form.errors = error.errors || [{ key: 'feedback.errors.unknownError' }];
       // console.log(state.form.errors);
       // const validationErrors = error.errors.map((err) => {
       //   return err;
@@ -178,7 +193,7 @@ export default () => {
   //   //  upd();
   // };
 
-  elements.form.addEventListener('submit', async (event) => {
+  elements.form.addEventListener('submit', (event) => {
     event.preventDefault();
     const formData = new FormData(event.target);
     const newUrl = formData.get('url');
