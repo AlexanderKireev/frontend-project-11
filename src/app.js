@@ -20,6 +20,11 @@ export default () => {
     feeds: document.querySelector('.feeds'),
     inputForm: document.querySelector('#url-input'),
     feedbackForm: document.querySelector('.feedback'),
+    modal: document.querySelector('#modal'),
+    body: document.querySelector('body'),
+    modalTitle: document.querySelector('.modal-title'),
+    modalBody: document.querySelector('.modal-body'),
+    modalLink: document.querySelector('.full-article'),
     // ulPosts = document.querySelector('.posts ul');
     // ulFeeds = document.querySelector('.feeds ul');
     // fields: {},

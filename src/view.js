@@ -1,4 +1,3 @@
-// import '../vendor/bootstrap/bootstrap.min.css';
 import onChange from 'on-change';
 
 const renderContentElements = (elements, i18n, state) => {
@@ -50,9 +49,15 @@ const renderFeeds = (elements, value, listId) => {
 const renderPosts = (elements, value, listId, i18n) => {
   value.forEach((post) => {
     if (!listId.includes(post.id)) {
-      const ulEl = elements.ulPosts;
+      const {
+        ulPosts,
+        modalTitle,
+        modalBody,
+        modalLink,
+      } = elements;
+
       const liEl = document.createElement('li');
-      ulEl.prepend(liEl);
+      ulPosts.prepend(liEl);
       liEl.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-start', 'border-0', 'border-end-0');
       const aEl = document.createElement('a');
       liEl.append(aEl);
@@ -78,8 +83,12 @@ const renderPosts = (elements, value, listId, i18n) => {
       });
 
       button.addEventListener('click', () => {
+        button.blur();
         aEl.classList.remove('fw-bold');
         aEl.classList.add('fw-normal', 'link-secondary');
+        modalTitle.textContent = post.title;
+        modalBody.textContent = post.description;
+        modalLink.href = post.link;
       });
     }
   });
