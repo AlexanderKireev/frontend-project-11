@@ -1,5 +1,5 @@
-import '../vendor/bootstrap/bootstrap.min.css';
-import '../vendor/bootstrap/bootstrap.bundle.min.js';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/js/bootstrap.min.js';
 import app from './app.js';
 
 app();
