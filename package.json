@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "axios": "^1.6.7",
+    "bootstrap": "^5.3.3",
     "i18next": "^23.8.3",
     "lodash.uniqueid": "^4.0.1",
     "on-change": "^5.0.1",
