@@ -3,22 +3,22 @@ import onChange from 'on-change';
 const renderContentElements = (elements, i18n, state) => {
   Object.keys(state.contentData).forEach((contentName) => {
     const element = elements[contentName];
-    const div = document.createElement('div');
-    div.classList.add('card', 'border-0');
-    element.append(div);
+    const divEl = document.createElement('div');
+    divEl.classList.add('card', 'border-0');
+    element.append(divEl);
 
     const divTitle = document.createElement('div');
     divTitle.classList.add('card-body');
-    div.append(divTitle);
+    divEl.append(divTitle);
 
     const headingEl = document.createElement('h2');
     headingEl.classList.add('card-title', 'h4');
     headingEl.textContent = i18n.t(`elements_names.${contentName}`);
     divTitle.append(headingEl);
 
-    const ul = document.createElement('ul');
-    ul.classList.add('list-group', 'border-0', 'rounded-0');
-    div.append(ul);
+    const ulEl = document.createElement('ul');
+    ulEl.classList.add('list-group', 'border-0', 'rounded-0');
+    divEl.append(ulEl);
   });
 };
 
@@ -117,7 +117,6 @@ const getListId = (prev) => prev.map((item) => item.id);
 
 export default (elements, i18n, state) => {
   const watchedState = onChange(state, (path, value, prev) => {
-    // console.log(path);
     switch (path) {
       case 'clearContentPage':
         renderContentElements(elements, i18n, state);

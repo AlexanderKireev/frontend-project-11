@@ -25,10 +25,6 @@ export default () => {
     modalTitle: document.querySelector('.modal-title'),
     modalBody: document.querySelector('.modal-body'),
     modalLink: document.querySelector('.full-article'),
-    // ulPosts = document.querySelector('.posts ul');
-    // ulFeeds = document.querySelector('.feeds ul');
-    // fields: {},
-    // errorFields: {},
   };
 
   const getProxyUrl = (link) => {
@@ -40,38 +36,19 @@ export default () => {
   const state = {
     clearContentPage: true,
     form: {
-      // status: null,
-      // valid: false,
       errors: null,
     },
     contentData: {
       posts: [],
-      // {
-      //   id: '',
-      //   feedId: '',
-      //   title: '',
-      //   link: '',
-      //   description: '',
-      // },
-      // ],
       feeds: [],
-      // {
-      //   id: '',
-      //   title: '',
-      //   description: '',
-      //   link: '',
-      // },
-      // ],
     },
   };
 
   const watchedState = watch(elements, i18n, state);
 
-  const convertDOMtoContetntData = (parsedDOM, link) => {
+  const convertDOMtoContetntData = (parsedDOM) => {
     const feed = {
-      id: uniqueId(),
       title: parsedDOM.querySelector('title').textContent,
-      link,
       description: parsedDOM.querySelector('description').textContent,
     };
 
@@ -79,20 +56,16 @@ export default () => {
     const items = Array.from(itemElements).reverse();
     const posts = items.map((item) => {
       const post = {
-        id: uniqueId(),
-        feedId: feed.id,
         title: item.querySelector('title').textContent,
         link: item.querySelector('link').textContent,
         description: item.querySelector('description').textContent,
       };
       return post;
     });
-    const re = { feed, posts };
-    // console.log(re);
-    return re;
+    return { feed, posts };
   };
 
-  const parsingUrl = (xmlString, feedUrl) => {
+  const parsingUrl = (xmlString) => {
     const parser = new DOMParser();
     const parsedDOM = parser.parseFromString(xmlString, 'application/xml');
     const errorNode = parsedDOM.querySelector('parsererror');
@@ -101,51 +74,56 @@ export default () => {
       error.parsingError = true;
       throw error;
     }
-    return convertDOMtoContetntData(parsedDOM, feedUrl);
+    return convertDOMtoContetntData(parsedDOM);
+  };
+
+  const addNewPosts = (feed) => {
+    const addedPostTitles = state.contentData.posts.map((post) => post.title);
+    const newPosts = feed.posts.filter((post) => !addedPostTitles.includes(post.title));
+    newPosts.forEach((post) => {
+      post.id = uniqueId();
+      post.feedId = feed.feed.id;
+    });
+    watchedState.contentData.posts = [...state.contentData.posts, ...newPosts];
+  };
+
+  const autoUpdatePage = () => {
+    if (state.contentData.feeds.length !== 0) {
+      state.contentData.feeds.forEach((feed) => {
+        axios.get(getProxyUrl(feed.link)).then((response) => {
+          const newFeed = parsingUrl(response.data.contents);
+          newFeed.feed.id = feed.id;
+          newFeed.feed.link = feed.link;
+          addNewPosts(newFeed);
+        }).catch((error) => console.log(error));
+      });
+    }
+
+    setTimeout(() => autoUpdatePage(), 5000);
   };
 
   const getResponse = (url) => {
     axios.get(getProxyUrl(url)).then((response) => {
-      // state.resp = response.data.contents;
-      // console.log(state.resp);
-      const newFeed = parsingUrl(response.data.contents, url);
-      // console.log(obj.posts);
+      const newFeed = parsingUrl(response.data.contents);
       if (state.clearContentPage) {
         watchedState.clearContentPage = false;
-        // elements.ulPosts = document.querySelector('.posts ul');
-        // elements.ulFeeds = document.querySelector('.feeds ul');
-        // console.log(elements);
+        autoUpdatePage();
       }
-      // watchedState.form.valid = true;
-      // state.form.valid = false;
       watchedState.form.errors = [];
+      newFeed.feed.id = uniqueId();
+      newFeed.feed.link = url;
       watchedState.contentData.feeds.push(newFeed.feed);
-      // const updatedPosts = [...state.contentData.posts, ...obj.posts];
-      // // console.log(updatePosts);
-      watchedState.contentData.posts = [...state.contentData.posts, ...newFeed.posts];
-      // console.log(elements);
-      // console.log(state);
+      addNewPosts(newFeed);
     }).catch((error) => {
       if (axios.isAxiosError(error)) {
         watchedState.form.errors = [{ key: 'feedback.errors.noConnection' }];
       } else if (error.parsingError) {
-        // console.log('fff');
         watchedState.form.errors = [{ key: 'feedback.errors.parsingError' }];
       } else {
         watchedState.form.errors = [{ key: 'feedback.errors.unknownError' }];
       }
-      // watchedState.form.errors = ;
-      // console.log(err);
-      // console.log(axios.isAxiosError(err));
     });
   };
-
-  // console.log(state.resp);
-
-  // const x = doc1.querySelector('warning');
-  // console.log(x.textContent);
-
-  //   console.log(r.then(console.log));
 
   yup.setLocale({
     mixed: {
@@ -163,40 +141,10 @@ export default () => {
 
     schema.validate(newUrl, { abortEarly: false }).then((url) => {
       getResponse(url);
-      // watchedState.addedFeedsUrls.unshift(url);
-      // console.log(url);
     }).catch((error) => {
-    // console.log(error.inner);
-    // console.log(error.errors);
       watchedState.form.errors = error.errors || [{ key: 'feedback.errors.unknownError' }];
-      // console.log(state.form.errors);
-      // const validationErrors = error.errors.map((err) => {
-      //   return err;
-
-      // }
-      // );
-      // console.log(validationErrors);
-      // const validationErrors = error.inner.reduce((acc, cur) => {
-      //   const { path, message } = cur;
-      //   const errorData = acc[path] || [];
-      //   return { ...acc, [path]: [...errorData, message] };
-      // }, {});
-      // console.log(validationErrors);
-      // watchedState.form.errors = validationErrors;
-
-      // // const errors = {};
     });
   };
-
-  // const upd = () => {
-  //   axios.get(getProxyUrl('https://lorem-rss.hexlet.app/feed')).then((response) => {
-  //     console.log(response);
-  //   });
-
-  //   setTimeout(() => upd(), 3000);
-
-  //   //  upd();
-  // };
 
   elements.form.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -204,21 +152,5 @@ export default () => {
     const newUrl = formData.get('url');
 
     getValidation(newUrl);
-    // upd();
-    // console.log(state);
-
-    // watchedState.form.errors = [];
-    // watchedState.form.valid = true;
-  // } catch (err) {
-  //   console.log('errrr');
-  //   console.log(err);
-    // const validationErrors = err.inner.reduce((acc, cur) => {
-    //   const { path, message } = cur;
-    //   const errorData = acc[path] || [];
-    //   return { ...acc, [path]: [...errorData, message] };
-    // }, {});
-  // }
-  //   watchedState.form.errors = validationErrors;
-  // }
   });
 };
