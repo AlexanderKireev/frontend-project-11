@@ -4,6 +4,7 @@ import i18next from 'i18next';
 import * as yup from 'yup';
 import watch from './view.js';
 import resources from './locales/index.js';
+import parsingUrl from './parser.js';
 
 export default () => {
   const defaultLanguage = 'ru';
@@ -20,11 +21,13 @@ export default () => {
     feeds: document.querySelector('.feeds'),
     inputForm: document.querySelector('#url-input'),
     feedbackForm: document.querySelector('.feedback'),
-    modal: document.querySelector('#modal'),
     body: document.querySelector('body'),
-    modalTitle: document.querySelector('.modal-title'),
-    modalBody: document.querySelector('.modal-body'),
-    modalLink: document.querySelector('.full-article'),
+    submitButton: document.querySelector('button[type="submit"]'),
+    modalWindow: {
+      modalTitle: document.querySelector('.modal-title'),
+      modalBody: document.querySelector('.modal-body'),
+      modalLink: document.querySelector('.full-article'),
+    },
   };
 
   const getProxyUrl = (link) => {
@@ -34,9 +37,10 @@ export default () => {
   };
 
   const state = {
-    clearContentPage: true,
+    applicationState: 'initial', // 'changed'
     form: {
-      errors: null,
+      processState: 'filling', // 'sending', 'sendingError'
+      errors: [],
     },
     contentData: {
       posts: [],
@@ -45,37 +49,6 @@ export default () => {
   };
 
   const watchedState = watch(elements, i18n, state);
-
-  const convertDOMtoContetntData = (parsedDOM) => {
-    const feed = {
-      title: parsedDOM.querySelector('title').textContent,
-      description: parsedDOM.querySelector('description').textContent,
-    };
-
-    const itemElements = parsedDOM.querySelectorAll('item');
-    const items = Array.from(itemElements).reverse();
-    const posts = items.map((item) => {
-      const post = {
-        title: item.querySelector('title').textContent,
-        link: item.querySelector('link').textContent,
-        description: item.querySelector('description').textContent,
-      };
-      return post;
-    });
-    return { feed, posts };
-  };
-
-  const parsingUrl = (xmlString) => {
-    const parser = new DOMParser();
-    const parsedDOM = parser.parseFromString(xmlString, 'application/xml');
-    const errorNode = parsedDOM.querySelector('parsererror');
-    if (errorNode) {
-      const error = new Error(errorNode);
-      error.parsingError = true;
-      throw error;
-    }
-    return convertDOMtoContetntData(parsedDOM);
-  };
 
   const addNewPosts = (feed) => {
     const addedPostTitles = state.contentData.posts.map((post) => post.title);
@@ -105,23 +78,26 @@ export default () => {
   const getResponse = (url) => {
     axios.get(getProxyUrl(url)).then((response) => {
       const newFeed = parsingUrl(response.data.contents);
-      if (state.clearContentPage) {
-        watchedState.clearContentPage = false;
+      state.form.errors = [];
+      watchedState.form.processState = 'filling';
+      if (!elements.ulFeeds) {
         autoUpdatePage();
+        elements.ulPosts = document.querySelector('.posts ul');
+        elements.ulFeeds = document.querySelector('.feeds ul');
       }
-      watchedState.form.errors = [];
       newFeed.feed.id = uniqueId();
       newFeed.feed.link = url;
       watchedState.contentData.feeds.push(newFeed.feed);
       addNewPosts(newFeed);
     }).catch((error) => {
       if (axios.isAxiosError(error)) {
-        watchedState.form.errors = [{ key: 'feedback.errors.noConnection' }];
+        state.form.errors = [{ key: 'feedback.errors.noConnection' }];
       } else if (error.parsingError) {
-        watchedState.form.errors = [{ key: 'feedback.errors.parsingError' }];
+        state.form.errors = [{ key: 'feedback.errors.parsingError' }];
       } else {
-        watchedState.form.errors = [{ key: 'feedback.errors.unknownError' }];
+        state.form.errors = [{ key: 'feedback.errors.unknownError' }];
       }
+      watchedState.form.processState = 'sendingError';
     });
   };
 
@@ -142,12 +118,14 @@ export default () => {
     schema.validate(newUrl, { abortEarly: false }).then((url) => {
       getResponse(url);
     }).catch((error) => {
-      watchedState.form.errors = error.errors || [{ key: 'feedback.errors.unknownError' }];
+      state.form.errors = error.errors || [{ key: 'feedback.errors.unknownError' }];
+      watchedState.form.processState = 'sendingError';
     });
   };
 
   elements.form.addEventListener('submit', (event) => {
     event.preventDefault();
+    watchedState.form.processState = 'sending';
     const formData = new FormData(event.target);
     const newUrl = formData.get('url');
 

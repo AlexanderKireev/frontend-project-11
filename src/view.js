@@ -1,135 +1,143 @@
 import onChange from 'on-change';
 
-const renderContentElements = (elements, i18n, state) => {
-  Object.keys(state.contentData).forEach((contentName) => {
-    const element = elements[contentName];
-    const divEl = document.createElement('div');
-    divEl.classList.add('card', 'border-0');
-    element.append(divEl);
+const createNewElement = (name, classNames, textContent, attributes = {}) => {
+  const newElement = document.createElement(name);
+  newElement.classList.add(...classNames);
+  newElement.textContent = textContent;
+  Object.keys(attributes).forEach((key) => newElement.setAttribute(key, attributes[key]));
+  return newElement;
+};
 
-    const divTitle = document.createElement('div');
-    divTitle.classList.add('card-body');
-    divEl.append(divTitle);
+const renderContentElements = (elements, i18n, { contentData }) => {
+  if (elements.ulFeeds) { return; }
 
-    const headingEl = document.createElement('h2');
-    headingEl.classList.add('card-title', 'h4');
-    headingEl.textContent = i18n.t(`elements_names.${contentName}`);
-    divTitle.append(headingEl);
+  Object.keys(contentData).forEach((contentName) => {
+    const newHeadingElement = createNewElement('h2', ['card-title', 'h4'], i18n.t(`elements_names.${contentName}`));
+    const newParentDivElement = createNewElement('div', ['card', 'border-0'], null);
+    const newChildDivElement = createNewElement('div', ['card-body'], null);
+    const newUlElement = createNewElement('ul', ['list-group', 'border-0', 'rounded-0'], null);
 
-    const ulEl = document.createElement('ul');
-    ulEl.classList.add('list-group', 'border-0', 'rounded-0');
-    divEl.append(ulEl);
+    newChildDivElement.append(newHeadingElement);
+    newParentDivElement.append(...[newChildDivElement, newUlElement]);
+    elements[contentName].append(newParentDivElement);
   });
 };
 
-const getContentElements = (elements) => {
-  elements.ulPosts = document.querySelector('.posts ul');
-  elements.ulFeeds = document.querySelector('.feeds ul');
-};
+const renderFeeds = ({ ulFeeds }, feeds, listId) => {
+  feeds.forEach(({ id, title, description }) => {
+    if (!listId.includes(id)) {
+      const newHeadingElement = createNewElement('h3', ['h6', 'm-0'], title);
+      const newPElement = createNewElement('p', ['m-0', 'small', 'text-black-50'], description);
+      const newLiElement = createNewElement('li', ['list-group-item', 'border-0', 'border-end-0'], null);
 
-const renderFeeds = (elements, value, listId) => {
-  value.forEach((feed) => {
-    if (!listId.includes(feed.id)) {
-      const ulEl = elements.ulFeeds;
-      const liEl = document.createElement('li');
-      ulEl.prepend(liEl);
-      liEl.classList.add('list-group-item', 'border-0', 'border-end-0');
-      const headingEl = document.createElement('h3');
-      headingEl.classList.add('h6', 'm-0');
-      liEl.append(headingEl);
-      headingEl.textContent = feed.title;
-      const pEl = document.createElement('p');
-      pEl.classList.add('m-0', 'small', 'text-black-50');
-      pEl.textContent = feed.description;
-      liEl.append(pEl);
+      newLiElement.append(...[newHeadingElement, newPElement]);
+      ulFeeds.prepend(newLiElement);
     }
   });
 };
 
-const renderPosts = (elements, value, listId, i18n) => {
-  value.forEach((post) => {
-    if (!listId.includes(post.id)) {
-      const {
-        ulPosts,
-        modalTitle,
-        modalBody,
-        modalLink,
-      } = elements;
+const addLinkHandler = (element) => {
+  element.addEventListener('click', () => {
+    element.classList.remove('fw-bold');
+    element.classList.add('fw-normal', 'link-secondary');
+  });
+};
 
-      const liEl = document.createElement('li');
-      ulPosts.prepend(liEl);
-      liEl.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-start', 'border-0', 'border-end-0');
-      const aEl = document.createElement('a');
-      liEl.append(aEl);
-      aEl.href = post.link;
-      aEl.classList.add('fw-bold');
-      aEl.dataset.id = post.id;
-      aEl.textContent = post.title;
-      aEl.target = '_blank';
-      aEl.rel = 'noopener noreferrer';
+const addModalButtonHandler = (button, element, modalWindow, { title, link, description }) => {
+  const { modalTitle, modalBody, modalLink } = modalWindow;
+  button.addEventListener('click', () => {
+    button.blur();
+    element.classList.remove('fw-bold');
+    element.classList.add('fw-normal', 'link-secondary');
+    modalTitle.textContent = title;
+    modalBody.textContent = description;
+    modalLink.href = link;
+  });
+};
 
-      const button = document.createElement('button');
-      liEl.append(button);
-      button.type = 'button';
-      button.classList.add('btn', 'btn-outline-primary', 'btn-sm');
-      button.textContent = i18n.t('elements_names.view');
-      button.dataset.id = post.id;
-      button.dataset.bsToggle = 'modal';
-      button.dataset.bsTarget = '#modal';
+const renderPosts = ({ ulPosts, modalWindow }, posts, listId, i18n) => {
+  posts.forEach((post) => {
+    const { id, title, link } = post;
+    if (!listId.includes(id)) {
+      const newLiElement = createNewElement('li', [
+        'list-group-item', 'd-flex', 'justify-content-between',
+        'align-items-start', 'border-0', 'border-end-0',
+      ], null);
 
-      aEl.addEventListener('click', () => {
-        aEl.classList.remove('fw-bold');
-        aEl.classList.add('fw-normal', 'link-secondary');
+      const newAElement = createNewElement('a', ['fw-bold'], title, {
+        href: link, 'data-id': id, target: '_blank', rel: 'noopener noreferrer',
       });
 
-      button.addEventListener('click', () => {
-        button.blur();
-        aEl.classList.remove('fw-bold');
-        aEl.classList.add('fw-normal', 'link-secondary');
-        modalTitle.textContent = post.title;
-        modalBody.textContent = post.description;
-        modalLink.href = post.link;
+      const newButtonElement = createNewElement('button', [
+        'btn', 'btn-outline-primary', 'btn-sm',
+      ], i18n.t('elements_names.view'), {
+        type: 'button', 'data-id': id, 'data-bs-toggle': 'modal', 'data-bs-target': '#modal',
       });
+      newLiElement.append(...[newAElement, newButtonElement]);
+      ulPosts.prepend(newLiElement);
+      addLinkHandler(newAElement);
+      addModalButtonHandler(newButtonElement, newAElement, modalWindow, post);
     }
   });
 };
 
-const renderErrors = (elements, i18n, value) => {
+const clearFeedbackForm = ({ inputForm, feedbackForm }) => {
+  feedbackForm.textContent = '';
+  inputForm.classList.remove('is-invalid');
+};
+
+const renderFeedbackError = ({ inputForm, feedbackForm }, i18n, { form: { errors } }) => {
+  feedbackForm.classList.remove('text-success');
+  feedbackForm.classList.add('text-danger');
+  inputForm.classList.add('is-invalid');
+  errors.forEach((error) => {
+    feedbackForm.textContent = i18n.t(error.key);
+  });
+};
+
+const renderSuccessFeedback = (elements, i18n) => {
   const { form, inputForm, feedbackForm } = elements;
-  if (value.length === 0) {
-    feedbackForm.textContent = i18n.t('feedback.success');
-    feedbackForm.classList.remove('text-danger');
-    feedbackForm.classList.add('text-success');
-    inputForm.classList.remove('is-invalid');
-    form.reset();
-    inputForm.focus();
-  } else {
-    feedbackForm.classList.remove('text-success');
-    feedbackForm.classList.add('text-danger');
-    inputForm.classList.add('is-invalid');
-    value.forEach((error) => {
-      feedbackForm.textContent = i18n.t(error.key);
-    });
+  feedbackForm.textContent = i18n.t('feedback.success');
+  feedbackForm.classList.remove('text-danger');
+  feedbackForm.classList.add('text-success');
+  inputForm.classList.remove('is-invalid');
+  form.reset();
+  inputForm.focus();
+};
+
+const getListId = (prevValue) => prevValue.map((item) => item.id);
+
+const handleProcessState = (elements, processState, i18n, state) => {
+  switch (processState) {
+    case 'filling':
+      elements.submitButton.disabled = false;
+      renderSuccessFeedback(elements, i18n);
+      renderContentElements(elements, i18n, state);
+      break;
+    case 'sending':
+      elements.submitButton.disabled = true;
+      clearFeedbackForm(elements);
+      break;
+    case 'sendingError':
+      elements.submitButton.disabled = false;
+      renderFeedbackError(elements, i18n, state);
+      break;
+    default:
+      throw new Error(`Unknown process state: ${processState}`);
   }
 };
 
-const getListId = (prev) => prev.map((item) => item.id);
-
 export default (elements, i18n, state) => {
-  const watchedState = onChange(state, (path, value, prev) => {
+  const watchedState = onChange(state, (path, value, prevValue) => {
     switch (path) {
-      case 'clearContentPage':
-        renderContentElements(elements, i18n, state);
-        getContentElements(elements);
+      case 'form.processState':
+        handleProcessState(elements, value, i18n, state);
         break;
       case 'contentData.feeds':
-        renderFeeds(elements, value, getListId(prev));
+        renderFeeds(elements, value, getListId(prevValue), i18n, state);
         break;
       case 'contentData.posts':
-        renderPosts(elements, value, getListId(prev), i18n);
-        break;
-      case 'form.errors':
-        renderErrors(elements, i18n, value);
+        renderPosts(elements, value, getListId(prevValue), i18n);
         break;
       default:
         break;
